@@ -35,13 +35,11 @@ MODEL_PATH=/home/cryang_wx1511021/DeepSeek-V3.2-Exp-w8a8
 # Performance tuning
 # -----------------------------------------------------------------------------
 # Pin SGLang CPU workers, reduce NPU memory fragmentation, and increase available
-# NPU streams. The scheduler knobs are local Ascend/SGLang-fork tuning items;
-# verify they are still read by the target checkout when changing branches.
+# NPU streams. Prefill delay tuning is passed as launch arguments below because
+# the old scheduler environment variables are deprecated.
 export SGLANG_SET_CPU_AFFINITY=1
 export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True
 export STREAMS_PER_DEVICE=32
-export SGLANG_SCHEDULER_DECREASE_PREFILL_IDLE=1
-export SGLANG_PREFILL_DELAYER_MAX_DELAY_PASSES=100
 #export SGLANG_ENABLE_TP_MEMORY_INBALANCE_CHECK=0
 
 # -----------------------------------------------------------------------------
@@ -71,9 +69,8 @@ export SGLANG_DEEPEP_NUM_MAX_DISPATCH_TOKENS_PER_RANK=16
 # -----------------------------------------------------------------------------
 # Speculative decoding and overlap scheduling
 # -----------------------------------------------------------------------------
-# SpecV2 enables the overlap scheduler for speculative/MTP-style paths. The plan
-# stream overlaps planning work with execution when the corresponding model path
-# and launch arguments activate speculative decoding.
+# Optional plan-stream overlap for speculative/MTP-style paths. Keep disabled in
+# the baseline unless speculative decoding is explicitly enabled and benchmarked.
 # export SGLANG_ENABLE_OVERLAP_PLAN_STREAM=1
 
 # -----------------------------------------------------------------------------
@@ -105,9 +102,8 @@ export CUDA_ENABLE_COREDUMP_ON_EXCEPTION=0
 export CUDA_ENABLE_USER_TRIGGERED_COREDUMP=0
 
 # NOTE: dp-size=1 does not provide data-parallel scaling; keep DP attention only
-# if this Ascend path requires the DP code path. For DeepSeek-V3.2-Exp, also
-# verify whether the upstream tool parser should be deepseekv31 or deepseekv32.
-python3 -m sglang.launch_server --model-path ${MODEL_PATH} \
+# if this Ascend path requires the DP code path.
+sglang serve --model-path ${MODEL_PATH} \
 --tp 16 \
 --trust-remote-code \
 --attention-backend ascend \
@@ -117,9 +113,10 @@ python3 -m sglang.launch_server --model-path ${MODEL_PATH} \
 --host 127.0.0.1 --port 6699 \
 --mem-fraction-static 0.8 \
 --max-running-requests 16 \
+--enable-prefill-delayer --prefill-delayer-max-delay-passes 100 \
 --context-length 65536  --disable-radix-cache --chunked-prefill-size 4096 \
 --enable-dp-attention --dp-size 1 --enable-dp-lm-head \
---cuda-graph-bs 16 \
+--cuda-graph-bs-decode 16 \
 --reasoning-parser deepseek-v3 \
 --tool-call-parser deepseekv32 \
 --dtype bfloat16 # 2>&1 | tee /home/cryang_wx1511021/testlauch.log
