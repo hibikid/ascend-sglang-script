@@ -54,7 +54,7 @@ export STREAMS_PER_DEVICE=32
 # a real NIC for multi-node serving.
 export HCCL_SOCKET_IFNAME=lo
 export GLOO_SOCKET_IFNAME=lo
-export HCCL_BUFFSIZE=1800
+export HCCL_BUFFSIZE=900
 
 # -----------------------------------------------------------------------------
 # Quantization and DeepEP/MoE
@@ -64,6 +64,7 @@ export HCCL_BUFFSIZE=1800
 # them; retune the dispatch-token cap when changing concurrency or spec length.
 export DEEP_NORMAL_MODE_USE_INT8_QUANT=1
 export SGLANG_DEEPEP_NUM_MAX_DISPATCH_TOKENS_PER_RANK=16
+export SGLANG_DISABLE_DSA_INDEXER_FUSION=1
 #export DEEPEP_NORMAL_LONG_SEQ_ROUND=8
 #export DEEPEP_NORMAL_LONG_SEQ_PER_ROUND_TOKENS=512
 
@@ -119,10 +120,10 @@ sglang serve --model-path ${MODEL_PATH} \
 --quantization modelslim \
 --watchdog-timeout 9000 \
 --host 127.0.0.1 --port 6699 \
---mem-fraction-static 0.7 \
+--mem-fraction-static 0.8 \
 --max-running-requests 16 \
---enable-prefill-delayer --prefill-delayer-max-delay-passes 200 \
---context-length 81920 --disable-radix-cache --chunked-prefill-size 4096 \
+--enable-prefill-delayer --prefill-delayer-max-delay-passes 100 \
+--context-length 65536 --disable-radix-cache --chunked-prefill-size 4096 \
 --enable-dp-attention --dp-size 1 --enable-dp-lm-head \
 --max-total-tokens 530000 \
 --cuda-graph-bs-decode 16 \
@@ -141,14 +142,8 @@ sglang serve --model-path ${MODEL_PATH} \
 # --prefill-max-requests 1 \
 # --served-model-name glm-5 \
 # --speculative-draft-model-quantization unquant \
-# --moe-a2a-backend deepep \
-# --deepep-mode auto \
 # --load-balance-method round_robin \
 # --speculative-algorithm NEXTN \
-# --speculative-num-steps 3 \
+# --speculative-num-steps 2 \
 # --speculative-eagle-topk 1 \
-# --speculative-num-draft-tokens 4
-
-# Shorter NEXTN candidate.
-# --moe-a2a-backend deepep --deepep-mode auto \
-# --speculative-algorithm NEXTN --speculative-num-steps 2 --speculative-eagle-topk 1 --speculative-num-draft-tokens 3 \
+# --speculative-num-draft-tokens 3
