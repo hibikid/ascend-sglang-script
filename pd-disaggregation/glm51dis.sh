@@ -62,9 +62,11 @@ export ASCEND_MF_STORE_URL="tcp://${P_IP[0]}:24670"
 # -----------------------------------------------------------------------------
 # Communication
 # -----------------------------------------------------------------------------
-# Real NIC for cross-node HCCL/Gloo traffic; check with `ip addr` if unsure.
-export HCCL_SOCKET_IFNAME=enp196s0f0
-export GLOO_SOCKET_IFNAME=enp196s0f0
+# Real NIC for cross-node HCCL/Gloo traffic. On these hosts the 10.120.72.x
+# address lives on bond4 (enp196s0f0/f1 are bond slaves with no IP of their
+# own), and Gloo needs the interface that owns the IP.
+export HCCL_SOCKET_IFNAME=bond4
+export GLOO_SOCKET_IFNAME=bond4
 
 # -----------------------------------------------------------------------------
 # Sparse KV/offload
@@ -118,7 +120,7 @@ for i in "${!P_IP[@]}"; do
         --reasoning-parser glm45 \
         --tool-call-parser glm47 \
         --moe-a2a-backend deepep \
-        --deepep-mode normal \
+        --deepep-mode auto \
         --dtype bfloat16 \
         --dist-init-addr ${P_IP[0]}:10000
         exit 0
@@ -172,7 +174,7 @@ for i in "${!D_IP[@]}"; do
         --reasoning-parser glm45 \
         --tool-call-parser glm47 \
         --moe-a2a-backend deepep \
-        --deepep-mode low_latency \
+        --deepep-mode auto \
         --dtype bfloat16 \
         --dist-init-addr ${D_IP[0]}:10000
         exit 0

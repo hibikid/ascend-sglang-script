@@ -9,8 +9,8 @@
 python -m sglang_router.launch_router \
     --pd-disaggregation \
     --policy cache_aware \
-    --prefill http://61.28.30.27:8000 8995 \
-    --decode http://61.28.30.28:8001 \
+    --prefill http://10.120.72.23:8000 8995 \
+    --decode http://10.120.72.25:8001 \
     --host 127.0.0.1 \
     --port 6699 \
     --mini-lb
