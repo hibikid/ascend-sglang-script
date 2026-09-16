@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Two-node PD disaggregation for DeepSeek V3.2 W8A8 on Ascend NPU.
+# Two-node PD disaggregation for GLM-5.1 W4A8 on Ascend NPU.
 # The same script runs on both nodes: the node matching P_IP starts the prefill
 # engine, the node matching D_IP starts the decode engine. The router lives in
 # router.sh.
@@ -32,7 +32,7 @@ source /usr/local/Ascend/nnal/atb/set_env.sh
 export LD_LIBRARY_PATH=/usr/local/Ascend/ascend-toolkit/latest/opp/vendors/customize/op_api/lib/:${LD_LIBRARY_PATH}
 export PATH=/usr/local/Ascend/9.0.0/compiler/bishengir/bin:$PATH
 
-# W8A8 ModelSlim quantized DeepSeek V3.2 path.
+# W4A8 ModelSlim quantized GLM-5.1 path.
 MODEL_PATH=/mnt/raid/user/data/models/GLM-5.1-w4a8
 
 # Cluster layout. LOCAL_HOST is this node's own IP; it must match one of the
@@ -135,8 +135,11 @@ for i in "${!D_IP[@]}"; do
         echo "launching decode on ${D_IP[$i]}"
 
         # Decode-side scheduling and MoE dispatch tuning from the Ascend best
-        # practice. TASK_QUEUE_ENABLE=0 and skipping the scheduler all-gather
-        # reduce decode-path overhead.
+        # practice. TASK_QUEUE_ENABLE=0 reduces decode-path overhead.
+        # SGLANG_SCHEDULER_SKIP_ALL_GATHER skips the vocab all-gather in the
+        # logits processor; it is only valid together with --enable-dp-lm-head
+        # (set below), otherwise decode samples from per-rank partial logits and
+        # emits garbage tokens (e.g. endless "!").
         export TASK_QUEUE_ENABLE=0
         export SGLANG_SCHEDULER_SKIP_ALL_GATHER=1
         export HCCL_BUFFSIZE=900
@@ -151,6 +154,8 @@ for i in "${!D_IP[@]}"; do
         sglang serve --model-path ${MODEL_PATH} \
         --tp 16 \
         --dp 1 \
+        --enable-dp-attention \
+        --enable-dp-lm-head \
         --base-gpu-id 0 \
         --gpu-id-step 1 \
         --trust-remote-code \

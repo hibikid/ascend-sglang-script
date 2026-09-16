@@ -15,7 +15,7 @@ sysctl -w kernel.numa_balancing=0
 sysctl -w kernel.sched_migration_cost_ns=50000
 
 # Use the source checkout instead of an installed sglang package.
-SGLANG_DIR=/home/cryang_wx1511021/sglang
+SGLANG_DIR=/home/cryang/sglang
 cd "${SGLANG_DIR}"
 export PYTHONPATH=${PWD}/python:${PYTHONPATH:-}
 
@@ -34,7 +34,7 @@ source /usr/local/Ascend/nnal/atb/set_env.sh
 export PATH=/usr/local/Ascend/8.5.0/compiler/bishengir/bin:$PATH
 
 # W4A8 ModelSlim quantized GLM-5.1 path.
-MODEL_PATH=/home/cryang_wx1511021/GLM-5.1-w4a8
+MODEL_PATH=/mnt/raid/user/data/models/GLM-5.1-w4a8
 
 # -----------------------------------------------------------------------------
 # Performance tuning
