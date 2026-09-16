@@ -94,7 +94,7 @@ export SGLANG_DISABLE_DSA_INDEXER_FUSION=1
 # -----------------------------------------------------------------------------
 # Core switch for sparsekv experiments. The local SGLang hook supports this for
 # DSA models such as DeepSeek V3.2 and GLM-5.
-export SGLANG_ENABLE_SPARSITY_DRIVEN_KV_OFFLOAD=1
+export SGLANG_ENABLE_SPARSITY_DRIVEN_KV_OFFLOAD=0
 
 # -----------------------------------------------------------------------------
 # Debug and profiling
