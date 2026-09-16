@@ -170,7 +170,6 @@ for i in "${!D_IP[@]}"; do
         --disaggregation-mode decode \
         --disaggregation-decode-extra-slots 0 \
         --nnodes 1 --node-rank 0 \
-        --prefill-round-robin-balance \
         --reasoning-parser glm45 \
         --tool-call-parser glm47 \
         --moe-a2a-backend deepep \
