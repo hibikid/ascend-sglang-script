@@ -13,7 +13,7 @@ sysctl -w kernel.numa_balancing=0
 sysctl -w kernel.sched_migration_cost_ns=50000
 
 # Use the source checkout instead of an installed sglang package.
-SGLANG_DIR=/home/cryang_wx1511021/sglang
+SGLANG_DIR=/home/cryang/sglang
 cd "${SGLANG_DIR}"
 export PYTHONPATH=${PWD}/python:${PYTHONPATH:-}
 
@@ -30,16 +30,16 @@ unset ASCEND_LAUNCH_BLOCKING
 source /usr/local/Ascend/ascend-toolkit/set_env.sh
 source /usr/local/Ascend/nnal/atb/set_env.sh
 export LD_LIBRARY_PATH=/usr/local/Ascend/ascend-toolkit/latest/opp/vendors/customize/op_api/lib/:${LD_LIBRARY_PATH}
-export PATH=/usr/local/Ascend/8.5.0/compiler/bishengir/bin:$PATH
+export PATH=/usr/local/Ascend/9.0.0/compiler/bishengir/bin:$PATH
 
 # W8A8 ModelSlim quantized DeepSeek V3.2 path.
-MODEL_PATH=/home/cryang_wx1511021/DeepSeek-V3.2-Exp-w8a8
+MODEL_PATH=/mnt/raid/user/data/models/GLM-5.1-w4a8
 
 # Cluster layout. LOCAL_HOST is this node's own IP; it must match one of the
 # arrays below for this script to launch an engine.
-P_IP=('61.28.30.27')
-D_IP=('61.28.30.28')
-LOCAL_HOST='61.28.30.27'
+P_IP=('10.120.72.23')
+D_IP=('10.120.72.25')
+LOCAL_HOST='10.120.72.23'
 
 # -----------------------------------------------------------------------------
 # Performance tuning
@@ -70,7 +70,7 @@ export GLOO_SOCKET_IFNAME=enp196s0f0
 # Sparse KV/offload
 # -----------------------------------------------------------------------------
 # Core switch for sparsekv experiments.
-export SGLANG_ENABLE_SPARSITY_DRIVEN_KV_OFFLOAD=1
+export SGLANG_ENABLE_SPARSITY_DRIVEN_KV_OFFLOAD=0
 
 # -----------------------------------------------------------------------------
 # Debug and profiling
@@ -106,7 +106,7 @@ for i in "${!P_IP[@]}"; do
         --mem-fraction-static 0.80 \
         --context-length 64000 \
         --disable-radix-cache --chunked-prefill-size -1 --max-prefill-tokens 64000 \
-        --max-running-requests 4 \
+        --max-running-requests 16 \
         --prefill-max-requests 1 \
         --quantization modelslim \
         --disaggregation-transfer-backend ascend \
@@ -115,8 +115,10 @@ for i in "${!P_IP[@]}"; do
         --nnodes 1 --node-rank 0 \
         --disaggregation-bootstrap-port 8995 \
         --moe-dense-tp-size 1 \
-        --reasoning-parser deepseek-v3 \
-        --tool-call-parser deepseekv32 \
+        --reasoning-parser glm45 \
+        --tool-call-parser glm47 \
+        --moe-a2a-backend deepep \
+        --deepep-mode normal \
         --dtype bfloat16 \
         --dist-init-addr ${P_IP[0]}:10000
         exit 0
@@ -136,7 +138,7 @@ for i in "${!D_IP[@]}"; do
         export TASK_QUEUE_ENABLE=0
         export SGLANG_SCHEDULER_SKIP_ALL_GATHER=1
         export HCCL_BUFFSIZE=900
-        export SGLANG_DEEPEP_NUM_MAX_DISPATCH_TOKENS_PER_RANK=8
+        export SGLANG_DEEPEP_NUM_MAX_DISPATCH_TOKENS_PER_RANK=16
 
         # Overlap scheduling for speculative/MTP paths. SPEC_V2 is removed in
         # current SGLang (V2 worker is the default); only the plan-stream and
@@ -158,17 +160,19 @@ for i in "${!D_IP[@]}"; do
         --context-length 64000 \
         --disable-radix-cache \
         --chunked-prefill-size -1 --max-prefill-tokens 64000 \
-        --max-running-requests 4 \
+        --max-running-requests 16 \
         --prefill-max-requests 1 \
-        --cuda-graph-max-bs-decode 4 \
+        --cuda-graph-bs-decode 16 \
         --quantization modelslim \
         --disaggregation-transfer-backend ascend \
         --disaggregation-mode decode \
         --disaggregation-decode-extra-slots 0 \
         --nnodes 1 --node-rank 0 \
         --prefill-round-robin-balance \
-        --reasoning-parser deepseek-v3 \
-        --tool-call-parser deepseekv32 \
+        --reasoning-parser glm45 \
+        --tool-call-parser glm47 \
+        --moe-a2a-backend deepep \
+        --deepep-mode low_latency \
         --dtype bfloat16 \
         --dist-init-addr ${D_IP[0]}:10000
         exit 0
