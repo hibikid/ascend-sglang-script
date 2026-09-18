@@ -94,7 +94,7 @@ export SGLANG_DISABLE_DSA_INDEXER_FUSION=1
 # -----------------------------------------------------------------------------
 # Core switch for sparsekv experiments. The local SGLang hook supports this for
 # DSA models such as DeepSeek V3.2 and GLM-5.
-export SGLANG_ENABLE_SPARSITY_DRIVEN_KV_OFFLOAD=0
+export SGLANG_ENABLE_SPARSITY_DRIVEN_KV_OFFLOAD=1
 
 # -----------------------------------------------------------------------------
 # Debug and profiling
@@ -120,12 +120,11 @@ sglang serve --model-path ${MODEL_PATH} \
 --quantization modelslim \
 --watchdog-timeout 9000 \
 --host 127.0.0.1 --port 6699 \
---mem-fraction-static 0.8 \
+--mem-fraction-static 0.75 \ 
 --max-running-requests 16 \
 --enable-prefill-delayer --prefill-delayer-max-delay-passes 100 \
---context-length 65536 --disable-radix-cache --chunked-prefill-size 4096 \
+--context-length 16384 --disable-radix-cache --chunked-prefill-size 4096 \
 --enable-dp-attention --dp-size 1 --enable-dp-lm-head \
---max-total-tokens 530000 \
 --cuda-graph-bs-decode 16 \
 --reasoning-parser glm45 \
 --tool-call-parser glm47 \

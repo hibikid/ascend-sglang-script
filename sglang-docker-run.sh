@@ -8,10 +8,10 @@ sudo docker run -itd \
   -v /etc/hccn.conf:/etc/hccn.conf \
   -v /etc/localtime:/etc/localtime \
   -v /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi \
-  -v /mnt/raid/user/data:/mnt/raid/user/data \
   --device=/dev/davinci_manager \
   --device=/dev/devmm_svm \
   --device=/dev/hisi_hdc \
   -v /home/youhuibai/cryang:/home/cryang \
+  -v /mnt/raid/user/data:/mnt/raid/user/data \
   quay.io/ascend/sglang:v0.5.16-cann9.0.0-a3 \
   /bin/bash
