@@ -69,8 +69,8 @@
           export DEEP_NORMAL_MODE_USE_INT8_QUANT=1
           export HCCL_BUFFSIZE=1024
           export TASK_QUEUE_ENABLE=1
-          export HCCL_SOCKET_IFNAME=enp196s0f0
-          export GLOO_SOCKET_IFNAME=enp196s0f0
+          export HCCL_SOCKET_IFNAME=bond4
+          export GLOO_SOCKET_IFNAME=bond4
 
           python3 -m sglang.launch_server --model-path ${MODEL_PATH} \
           --tp 16 \
@@ -120,8 +120,8 @@
           export SGLANG_NPU_USE_MULTI_STREAM=1
           export HCCL_BUFFSIZE=1024
           export TASK_QUEUE_ENABLE=0
-          export HCCL_SOCKET_IFNAME=enp196s0f0
-          export GLOO_SOCKET_IFNAME=enp196s0f0
+          export HCCL_SOCKET_IFNAME=bond4
+          export GLOO_SOCKET_IFNAME=bond4
           export SGLANG_DEEPEP_NUM_MAX_DISPATCH_TOKENS_PER_RANK=32
 
           python3 -m sglang.launch_server --model-path ${MODEL_PATH} \
