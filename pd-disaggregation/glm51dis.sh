@@ -8,7 +8,7 @@
   export SGLANG_SET_CPU_AFFINITY=1
 
   # 设置PYTHONPATH
-  cd /home/cryang_wx1511021/sglang
+  cd /home/cryang/sglang
   export PYTHONPATH=${PWD}/python:$PYTHONPATH
 
   unset https_proxy
@@ -30,7 +30,8 @@
   # pd传输, IP设置为p节点首节点
   export USE_VLLM_CUSTOM_ALLREDUCE=1
   export ASCEND_MF_TRANSFER_PROTOCOL="device_rdma"
-  export ASCEND_MF_STORE_URL="tcp://61.28.30.27:24670"
+  unset ASCEND_MF_TRANSFER_PROTOCOL
+  export ASCEND_MF_STORE_URL="tcp://10.120.72.31:24670"
   export SGLANG_DISAGGREGATION_BOOTSTRAP_TIMEOUT=600
 
   export TRANSFORMERS_VERBOSITY=error
@@ -43,16 +44,16 @@
   unset CUDA_COREDUMP_PIPE
 
   # 先跑普通PD正确性，暂不开SparseKV
-  export SGLANG_ENABLE_SPARSITY_DRIVEN_KV_OFFLOAD=0
+  export SGLANG_ENABLE_SPARSITY_DRIVEN_KV_OFFLOAD=1
 
   # p节点IP
-  P_IP=('61.28.30.27')
+  P_IP=('10.120.72.31')
   # D节点IP D节点首节点IP
-  D_IP=('61.28.30.28')
+  D_IP=('10.120.72.32')
 
-  MODEL_PATH=/home/cryang_wx1511021/GLM-5.1-w4a8
+  MODEL_PATH=/data_lib/data/models/GLM-5.1-w4a8
 
-  LOCAL_HOST1='61.28.30.27'
+  LOCAL_HOST1='10.120.72.31'
   echo "${LOCAL_HOST1}"
 
   # prefill
@@ -82,10 +83,10 @@
           --watchdog-timeout 9000 \
           --host ${P_IP[$i]} --port 8000 \
           --mem-fraction-static 0.75 \
-          --context-length 16384 \
+          --context-length 32768 \
           --disable-radix-cache \
           --chunked-prefill-size -1 \
-          --max-prefill-tokens 16384 \
+          --max-prefill-tokens 32768 \
           --enable-dp-attention \
           --dp-size 1 \
           --enable-dp-lm-head \
@@ -117,7 +118,7 @@
           export SGLANG_ENABLE_OVERLAP_PLAN_STREAM=1
           export SGLANG_ENABLE_SPEC_V2=1
           export SGLANG_NPU_USE_MULTI_STREAM=1
-          export HCCL_BUFFSIZE=650
+          export HCCL_BUFFSIZE=1024
           export TASK_QUEUE_ENABLE=0
           export HCCL_SOCKET_IFNAME=enp196s0f0
           export GLOO_SOCKET_IFNAME=enp196s0f0
@@ -135,10 +136,10 @@
           --watchdog-timeout 9000 \
           --host ${D_IP[$i]} --port 8001 \
           --mem-fraction-static 0.75 \
-          --context-length 16384 \
+          --context-length 32768 \
           --disable-radix-cache \
           --chunked-prefill-size -1 \
-          --max-prefill-tokens 16384 \
+          --max-prefill-tokens 32768 \
           --enable-dp-attention \
           --dp-size 1 \
           --enable-dp-lm-head \
@@ -155,7 +156,7 @@
           --disable-shared-experts-fusion \
           --load-balance-method round_robin \
           --dtype bfloat16 \
-          --disable-cuda-graph \
+          --cuda-graph-bs-decode 16 \
           --dist-init-addr ${D_IP[0]}:10000
           break
       fi

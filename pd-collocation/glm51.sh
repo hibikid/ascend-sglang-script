@@ -120,7 +120,7 @@ sglang serve --model-path ${MODEL_PATH} \
 --quantization modelslim \
 --watchdog-timeout 9000 \
 --host 127.0.0.1 --port 6699 \
---mem-fraction-static 0.75 \ 
+--mem-fraction-static 0.75 \
 --max-running-requests 16 \
 --enable-prefill-delayer --prefill-delayer-max-delay-passes 100 \
 --context-length 16384 --disable-radix-cache --chunked-prefill-size 4096 \
