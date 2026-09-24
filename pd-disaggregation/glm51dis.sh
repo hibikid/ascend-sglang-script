@@ -44,7 +44,7 @@
   unset CUDA_COREDUMP_PIPE
 
   # 先跑普通PD正确性，暂不开SparseKV
-  export SGLANG_ENABLE_SPARSITY_DRIVEN_KV_OFFLOAD=1
+  export SGLANG_NPU_ENABLE_SPARSE_KV_OFFLOAD=1
 
   # p节点IP
   P_IP=('10.120.72.31')
@@ -149,7 +149,6 @@
           --disaggregation-mode decode \
           --disaggregation-decode-extra-slots 0 \
           --nnodes 1 --node-rank 0 \
-          --prefill-round-robin-balance \
           --moe-a2a-backend deepep \
           --deepep-mode low_latency \
           --moe-dense-tp-size 1 \
