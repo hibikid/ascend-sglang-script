@@ -8,7 +8,9 @@ set -o pipefail
 # 两侧服务 ready 后，另开终端启动下方 router，再执行请求测试和日志检查。
 # 原 TransferEngine store 为 P:24670；mempool store 为 P:19000..19015。
 # mempool NIC 预留每侧25670..25701；若 MF 网卡 IP 不同，在对应 --mempool-nic 处修改。
-# context=8192、S_P/S_D=4096；整体 DRAM 仍同时容纳原 hostSHM 与 mempool。
+# 小容量对照：context=1024、S_P/S_D=512；整体 DRAM 仍同时容纳原 hostSHM 与 mempool。
+# 按当前78层/16 slots/576维BF16估算：BM每rank 1GiB，每机16GiB；D原hostSHM约23.40GiB。
+# 本轮通过后，可保留context=1024，仅把两侧S_P/S_D恢复4096，另存日志比较BM容量影响。
 
 # cpu高性能
   echo performance | tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
@@ -75,7 +77,7 @@ set -o pipefail
   echo "${LOCAL_HOST1}"
 
   # 日志每轮覆盖；需要保留历史时修改 LOG_DIR
-  LOG_DIR=/tmp/mempool-02-service
+  LOG_DIR=/tmp/mempool-02-service-small
   mkdir -p "${LOG_DIR}"
   git rev-parse HEAD
   git diff --stat
@@ -107,7 +109,7 @@ set -o pipefail
           --watchdog-timeout 9000 \
           --host ${P_IP[$i]} --port 8000 \
           --mem-fraction-static 0.75 \
-          --context-length 8192 \
+          --context-length 1024 \
           --disable-radix-cache \
           --chunked-prefill-size -1 \
           --max-prefill-tokens 4096 \
@@ -133,8 +135,8 @@ set -o pipefail
           --mempool-base-port 19000 \
           --mempool-pool-id 104 \
           --mempool-nic tcp://${P_IP[$i]}:25670 \
-          --mempool-prefill-capacity 4096 \
-          --mempool-decode-capacity 4096 \
+          --mempool-prefill-capacity 512 \
+          --mempool-decode-capacity 512 \
           --mempool-timeout 600 \
           2>&1 | tee "${LOG_DIR}/p.log"
           exit $?
@@ -169,7 +171,7 @@ set -o pipefail
           --watchdog-timeout 9000 \
           --host ${D_IP[$i]} --port 8001 \
           --mem-fraction-static 0.75 \
-          --context-length 8192 \
+          --context-length 1024 \
           --disable-radix-cache \
           --chunked-prefill-size -1 \
           --max-prefill-tokens 4096 \
@@ -195,8 +197,8 @@ set -o pipefail
           --mempool-base-port 19000 \
           --mempool-pool-id 104 \
           --mempool-nic tcp://${D_IP[$i]}:25670 \
-          --mempool-prefill-capacity 4096 \
-          --mempool-decode-capacity 4096 \
+          --mempool-prefill-capacity 512 \
+          --mempool-decode-capacity 512 \
           --mempool-timeout 600 \
           2>&1 | tee "${LOG_DIR}/d.log"
           exit $?
@@ -218,13 +220,13 @@ set -o pipefail
 # cd /home/cryang/sglang
 # python3 ascend-mempool-test/scripts/verify_shadow_service.py requests \
 #     --url http://127.0.0.1:6699 --decode-tokens 32 --timeout 900 \
-#     --output /tmp/mempool-02-service/requests.json
+#     --output /tmp/mempool-02-service-small/requests.json
 #
 # 等待 RELEASE_ACK，把 P/D 的 p.log、d.log 放到同一台机器，再检查：
 # python3 ascend-mempool-test/scripts/verify_shadow_service.py check-logs \
-#     --prefill-logs /tmp/mempool-02-service/p.log \
-#     --decode-logs /tmp/mempool-02-service/d.log \
-#     --requests 3 --output /tmp/mempool-02-service/lifecycle.json
+#     --prefill-logs /tmp/mempool-02-service-small/p.log \
+#     --decode-logs /tmp/mempool-02-service-small/d.log \
+#     --requests 3 --output /tmp/mempool-02-service-small/lifecycle.json
 #
 # 通过判据：REQUESTS_PASSED、SHADOW_LIFECYCLE_PASSED (no KV readback)。
 # 同时检查 requests.json 中的生成文本。本轮只验收 shadow 服务，尚不做 top-k readback。
