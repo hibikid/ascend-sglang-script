@@ -13,3 +13,11 @@ python3 -m sglang.benchmark.serving \
     --model /mnt/raid/user/data/models/GLM-5.1-w4a8
     # --model /home/cryang_wx1511021/GLM-5.1-w4a8
     # --model /home/caofei/DeepSeek-V3.2-Exp-w8a8
+
+sgl-eval run aime26 \
+    --base-url http://localhost:6699/v1 \
+    --n-repeats 1 \
+    --max-tokens 28672 \
+    --temperature 0 \
+    --thinking \
+    --num-threads 8
