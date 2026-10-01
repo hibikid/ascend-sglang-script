@@ -2,13 +2,13 @@
 set -o pipefail
 
 # 与 glm51dis.sh 一样：修改下面 P_IP、D_IP、LOCAL_HOST1、MODEL_PATH 和各段网卡名。
-# 两侧运行同一版本 sglang（本轮实现：5055182ba2），并使用相同的 mempool 容量/端口。
+# 两侧运行同一版本 sglang（启动诊断版本：2261e35683），并使用相同的 mempool 容量/端口。
 # 启动顺序：先 P，随后 D；P 等待 BM join 时就启动 D，不要等 P ready。
 # 两台机器各自执行：bash pd-disaggregation/glm51mempool.sh
 # 两侧服务 ready 后，另开终端启动下方 router，再执行请求测试和日志检查。
 # 原 TransferEngine store 为 P:24670；mempool store 为 P:19000..19015。
 # mempool NIC 预留每侧25670..25701；若 MF 网卡 IP 不同，在对应 --mempool-nic 处修改。
-# context=16384、S_P/S_D=8192；整体 DRAM 仍同时容纳原 hostSHM 与 mempool。
+# context=8192、S_P/S_D=4096；整体 DRAM 仍同时容纳原 hostSHM 与 mempool。
 
 # cpu高性能
   echo performance | tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
@@ -58,6 +58,8 @@ set -o pipefail
   # mempool shadow：保留原 sparse KV PD 路径，同时双写 mempool
   export SGLANG_NPU_ENABLE_SPARSE_KV_OFFLOAD=1
   export SGLANG_NPU_ENABLE_MEMPOOL=1
+  # BM 启动诊断：MF INFO、阶段耗时、每 15 秒等待状态与内存/栈快照。
+  export SGLANG_NPU_MEMPOOL_DIAGNOSTICS=1
   export SGLANG_NPU_USE_MLAPO=0
   export PYTHONUNBUFFERED=1
 
