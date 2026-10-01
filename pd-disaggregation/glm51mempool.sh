@@ -108,7 +108,7 @@ set -o pipefail
           --context-length 8192 \
           --disable-radix-cache \
           --chunked-prefill-size -1 \
-          --max-prefill-tokens 8192 \
+          --max-prefill-tokens 4096 \
           --enable-dp-attention \
           --dp-size 1 \
           --enable-dp-lm-head \
@@ -170,7 +170,7 @@ set -o pipefail
           --context-length 8192 \
           --disable-radix-cache \
           --chunked-prefill-size -1 \
-          --max-prefill-tokens 8192 \
+          --max-prefill-tokens 4096 \
           --enable-dp-attention \
           --dp-size 1 \
           --enable-dp-lm-head \
