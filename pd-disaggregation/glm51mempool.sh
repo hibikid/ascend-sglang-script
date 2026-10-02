@@ -235,6 +235,8 @@ set -o pipefail
 #     --output /tmp/mempool-02-readback-small/result.json
 #
 # 通过判据：REQUESTS_PASSED、SHADOW_READBACK_PASSED，同时检查生成文本。
-# 读回/Graph/全 rank DONE/ACK/实际 row 与 P/D slot 复用均通过，才算本轮验收通过。
-# 若提示 no actual row/P/D slot reuse，等全部 ACK 后再发三请求，requests JSON 换名，
+# 读回/Graph/全 rank DONE/ACK/实际 P/D 物理 slot 复用均通过，才算本轮验收通过。
+# request row 按 FIFO 轮换；报告中的 row_reused=false 不代表物理 slot 未复用。
+# 旧版 no actual row/P/D slot reuse 可能误报，先更新检查器重查原日志，无需重启服务。
+# 若新版提示 no actual P/D slot reuse，等全部 ACK 后再发三请求，requests JSON 换名，
 # 保留同轮 p.log/d.log 再检查；若出现 KV mismatch 则保留日志并停止本轮。
