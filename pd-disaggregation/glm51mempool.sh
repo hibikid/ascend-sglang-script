@@ -2,15 +2,15 @@
 set -o pipefail
 
 # 与 glm51dis.sh 一样：修改下面 P_IP、D_IP、LOCAL_HOST1、MODEL_PATH 和各段网卡名。
-# 两侧运行同一版本 sglang（真实 KV 读回实现：c4ec7c6b67 或包含它的后续提交）。
-# P/D 使用相同的 mempool 容量/端口，READBACK_SERVICE.md 说明完整验收流程。
+# 两侧运行同一版本 sglang（S5 正式模式：fadc8223cd 或包含它的后续提交）。
+# P/D 使用相同的 mempool 容量/端口，ascend-mempool-test/FORMAL_SERVICE.md 说明完整验收流程。
 # 启动顺序：先 P，随后 D；P 等待 BM join 时就启动 D，不要等 P ready。
 # 两台机器各自执行：LOCAL_HOST1=<本机IP> bash pd-disaggregation/glm51mempool.sh
 # 两侧服务 ready 后，另开终端启动下方 router，再执行请求测试和日志检查。
 # 原 TransferEngine store 为 P:24670；mempool store 为 P:19000..19015。
 # mempool NIC 预留每侧25670..25701；若 MF 网卡 IP 不同，在对应 --mempool-nic 处修改。
-# 小容量读回：context=1024、S_P/S_D=512；整体 DRAM 仍同时容纳原 hostSHM 与 mempool。
-# 按当前78层/16 slots/576维BF16估算：BM每rank 1GiB，每机16GiB；D原hostSHM约23.40GiB。
+# 小容量正式模式：context=1024、S_P/S_D=512；D 不分配旧 hostSHM 和 staging。
+# 按当前78层/16 slots/576维BF16估算：BM每rank 1GiB，每机16GiB；D 保留 HBM sparse cache。
 # 本轮验收真实 KV、Graph 和释放/复用；NUMA/大容量排查延后到 ticket 09。
 
 # cpu高性能
@@ -57,13 +57,13 @@ set -o pipefail
   unset CUDA_COREDUMP_FILE
   unset CUDA_COREDUMP_PIPE
 
-  # mempool shadow：保留原 sparse KV PD 路径，同时双写 mempool
+  # mempool 正式模式：P 保留 native HBM KV，D 从 HBM cache 和 P/D BM 取数
   export SGLANG_NPU_ENABLE_SPARSE_KV_OFFLOAD=1
   export SGLANG_NPU_ENABLE_MEMPOOL=1
-  export SGLANG_NPU_MEMPOOL_READBACK=1
+  export SGLANG_NPU_MEMPOOL_READBACK=0
   export SGLANG_NPU_MEMPOOL_LOCAL_NUMA_NODE=0,2,4,6
   # 关闭启动诊断的周期 WAIT/内存/栈快照及主动提升 MF INFO。
-  # 保留默认 INFO：Graph、readback_result、DONE/ACK 是验收所需证据。
+  # 保留默认 INFO：Graph、resources、fetch_result、DONE/ACK 是验收所需证据。
   export SGLANG_NPU_MEMPOOL_DIAGNOSTICS=0
   export SGLANG_NPU_USE_MLAPO=0
   export PYTHONUNBUFFERED=1
@@ -82,7 +82,7 @@ set -o pipefail
   echo "${LOCAL_HOST1}"
 
   # 日志每次启动覆盖；保留历史时通过 LOG_DIR 指定新目录。
-  LOG_DIR=${LOG_DIR:-/tmp/mempool-02-readback-small}
+  LOG_DIR=${LOG_DIR:-/tmp/ticket03-s5-formal}
   mkdir -p "${LOG_DIR}"
   git rev-parse HEAD
   git diff --stat
@@ -222,21 +222,18 @@ set -o pipefail
 #     --host 127.0.0.1 --port 6699 --mini-lb
 #
 # 请求测试（在 sglang 仓库根目录执行，router 地址按实际修改）：
-# cd /home/cryang/sglang
-# python3 ascend-mempool-test/scripts/verify_shadow_service.py requests \
-#     --url http://127.0.0.1:6699 --decode-tokens 32 --timeout 900 \
-#     --output /tmp/mempool-02-readback-small/requests.json
+# 按 ascend-mempool-test/FORMAL_SERVICE.md 第3节执行三个 curl 请求，
+# 分别覆盖 zero-decode、32-token decode 和物理 slot 复用，并保存响应。
 #
 # 等待 RELEASE_ACK，把 P/D 的 p.log、d.log 放到同一台机器，再检查：
-# python3 ascend-mempool-test/scripts/verify_shadow_service.py check-logs \
-#     --prefill-logs /tmp/mempool-02-readback-small/p.log \
-#     --decode-logs /tmp/mempool-02-readback-small/d.log \
-#     --requests 3 --require-readback --readback-layers 78 \
-#     --output /tmp/mempool-02-readback-small/result.json
+# python3 ascend-mempool-test/scripts/verify_service.py \
+#     --prefill-log /tmp/ticket03-s5-formal/p.log \
+#     --decode-log /tmp/ticket03-s5-formal/d.log \
+#     --requests 3 --layers 78 \
+#     --report /tmp/ticket03-s5-formal/service-result.json
 #
-# 通过判据：REQUESTS_PASSED、SHADOW_READBACK_PASSED，同时检查生成文本。
-# 读回/Graph/全 rank DONE/ACK/实际 P/D 物理 slot 复用均通过，才算本轮验收通过。
-# request row 按 FIFO 轮换；报告中的 row_reused=false 不代表物理 slot 未复用。
-# 旧版 no actual row/P/D slot reuse 可能误报，先更新检查器重查原日志，无需重启服务。
-# 若新版提示 no actual P/D slot reuse，等全部 ACK 后再发三请求，requests JSON 换名，
-# 保留同轮 p.log/d.log 再检查；若出现 KV mismatch 则保留日志并停止本轮。
+# 通过判据：FORMAL_SERVICE_PASSED；另按说明第4节用 curl 小题目核对生成文本。
+# 连续异步组件 gate、真实 Graph、全 rank 释放及实际 P/D slot 复用均需通过。
+# 性能按说明第5节测量 TTFT、TPOT 和吞吐，由用户验收时查看并判断。
+# 只缺物理 slot 复用时，等全部 ACK 后再发两次32-token请求并重新检查原日志。
+# 其他失败保留完整日志和请求响应，定位后再重测；HTTP 200 本身不算通过。
