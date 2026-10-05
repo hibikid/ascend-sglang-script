@@ -9,5 +9,5 @@ curl -v http://127.0.0.1:6699/v1/chat/completions \
       }
     ],
     "temperature": 0,
-    "max_tokens": 128
+    "max_tokens": 512
   }'
