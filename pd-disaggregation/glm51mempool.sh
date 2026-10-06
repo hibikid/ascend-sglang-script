@@ -60,7 +60,6 @@ set -o pipefail
   # mempool 正式模式：P 保留 native HBM KV，D 从 HBM cache 和 P/D BM 取数
   export SGLANG_NPU_ENABLE_SPARSE_KV_OFFLOAD=1
   export SGLANG_NPU_ENABLE_MEMPOOL=1
-  export SGLANG_NPU_MEMPOOL_READBACK=0
   export SGLANG_NPU_MEMPOOL_LOCAL_NUMA_NODE=0,2,4,6
   # 关闭启动诊断的周期 WAIT/内存/栈快照及主动提升 MF INFO。
   # 保留默认 INFO：Graph、resources、fetch_result、DONE/ACK 是验收所需证据。
