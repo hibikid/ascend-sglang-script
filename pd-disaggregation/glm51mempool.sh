@@ -114,10 +114,10 @@ set -o pipefail
           --watchdog-timeout 9000 \
           --host ${P_IP[$i]} --port 8000 \
           --mem-fraction-static 0.75 \
-          --context-length 32768 \
+          --context-length 16384 \
           --disable-radix-cache \
           --chunked-prefill-size -1 \
-          --max-prefill-tokens 32768 \
+          --max-prefill-tokens 16384 \
           --enable-dp-attention \
           --dp-size 1 \
           --enable-dp-lm-head \
@@ -140,8 +140,8 @@ set -o pipefail
           --mempool-base-port 19000 \
           --mempool-pool-id 104 \
           --mempool-nic tcp://${P_IP[$i]}:25670 \
-          --mempool-prefill-capacity 16384 \
-          --mempool-decode-capacity 16384 \
+          --mempool-prefill-capacity 8192 \
+          --mempool-decode-capacity 8192 \
           --mempool-timeout 600 \
           2>&1 | tee "${LOG_DIR}/p.log"
           exit $?
@@ -176,10 +176,10 @@ set -o pipefail
           --watchdog-timeout 9000 \
           --host ${D_IP[$i]} --port 8001 \
           --mem-fraction-static 0.75 \
-          --context-length 32768 \
+          --context-length 16384 \
           --disable-radix-cache \
           --chunked-prefill-size -1 \
-          --max-prefill-tokens 32768 \
+          --max-prefill-tokens 16384 \
           --enable-dp-attention \
           --dp-size 1 \
           --enable-dp-lm-head \
@@ -202,8 +202,8 @@ set -o pipefail
           --mempool-base-port 19000 \
           --mempool-pool-id 104 \
           --mempool-nic tcp://${D_IP[$i]}:25670 \
-          --mempool-prefill-capacity 16384 \
-          --mempool-decode-capacity 16384 \
+          --mempool-prefill-capacity 8192 \
+          --mempool-decode-capacity 8192 \
           --mempool-timeout 600 \
           2>&1 | tee "${LOG_DIR}/d.log"
           exit $?
