@@ -43,8 +43,12 @@
   unset CUDA_COREDUMP_FILE
   unset CUDA_COREDUMP_PIPE
 
-  # 先跑普通PD正确性，暂不开SparseKV
+  # SparseKV PD：P侧保留原生KV，D侧启用offload和LRU（模型index_topk须为2048）
   export SGLANG_NPU_ENABLE_SPARSE_KV_OFFLOAD=1
+  export SGLANG_NPU_SPARSE_KV_ENABLE_LRU=1
+  # 每请求设备KV容量为2 * 2048，LRU新条目的probation age为4
+  export SGLANG_NPU_SPARSE_KV_DEVICE_CACHE_FACTOR=2
+  export SGLANG_NPU_SPARSE_KV_PROBATION_AGE=4
 
   # p节点IP
   P_IP=('10.120.72.31')
