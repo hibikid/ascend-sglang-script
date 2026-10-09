@@ -87,10 +87,10 @@
           --watchdog-timeout 9000 \
           --host ${P_IP[$i]} --port 8000 \
           --mem-fraction-static 0.75 \
-          --context-length 16384 \
+          --context-length 32768 \
           --disable-radix-cache \
           --chunked-prefill-size -1 \
-          --max-prefill-tokens 16384 \
+          --max-prefill-tokens 32768 \
           --enable-dp-attention \
           --dp-size 1 \
           --enable-dp-lm-head \
@@ -140,10 +140,10 @@
           --watchdog-timeout 9000 \
           --host ${D_IP[$i]} --port 8001 \
           --mem-fraction-static 0.75 \
-          --context-length 16384 \
+          --context-length 32768 \
           --disable-radix-cache \
           --chunked-prefill-size -1 \
-          --max-prefill-tokens 16384 \
+          --max-prefill-tokens 32768 \
           --enable-dp-attention \
           --dp-size 1 \
           --enable-dp-lm-head \
