@@ -94,7 +94,7 @@
           --enable-dp-attention \
           --dp-size 1 \
           --enable-dp-lm-head \
-          --max-running-requests 16 \
+          --max-running-requests 2 \
           --prefill-max-requests 1 \
           --disaggregation-transfer-backend ascend \
           --disaggregation-mode prefill \
@@ -147,7 +147,7 @@
           --enable-dp-attention \
           --dp-size 1 \
           --enable-dp-lm-head \
-          --max-running-requests 16 \
+          --max-running-requests 2 \
           --prefill-max-requests 1 \
           --disaggregation-transfer-backend ascend \
           --disaggregation-mode decode \
