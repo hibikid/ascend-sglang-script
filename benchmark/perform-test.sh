@@ -17,7 +17,7 @@ python3 -m sglang.benchmark.serving \
 sgl-eval run aime26 \
     --base-url http://localhost:6699/v1 \
     --n-repeats 1 \
-    --max-tokens 16384 \
+    --max-tokens 30000 \
     --temperature 0 \
     --thinking \
-    --num-threads 4
+    --num-threads 8
