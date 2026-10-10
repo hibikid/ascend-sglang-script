@@ -13,4 +13,5 @@ python -m sglang_router.launch_router \
     --decode http://10.120.72.32:8001 \
     --host 127.0.0.1 \
     --port 6699 \
+    --request-timeout-secs 7200 \
     --mini-lb
