@@ -74,7 +74,7 @@ set -o pipefail
   # 原 TransferEngine 与 mempool 使用同一个 P 首节点地址。
   export ASCEND_MF_STORE_URL="tcp://${P_IP[0]}:24670"
 
-  MODEL_PATH=/data_lib/data/models/GLM-5.1-w4a8
+  MODEL_PATH=/data_lib/data/models/GLM-5.2-w4a8
 
   # P 机器填 P_IP，D 机器填 D_IP；网卡名在下面各自的启动段修改
   LOCAL_HOST1=${LOCAL_HOST1:-${P_IP[0]}}
