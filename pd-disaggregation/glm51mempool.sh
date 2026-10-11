@@ -9,8 +9,8 @@ set -o pipefail
 # 两侧服务 ready 后，另开终端启动下方 router，再执行请求测试和日志检查。
 # 原 TransferEngine store 为 P:24670；mempool store 为 P:19000..19015。
 # mempool NIC 预留每侧25670..25701；若 MF 网卡 IP 不同，在对应 --mempool-nic 处修改。
-# 小容量正式模式：context=1024、S_P/S_D=512；D 不分配旧 hostSHM 和 staging。
-# 按当前78层/16 slots/576维BF16估算：BM每rank 1GiB，每机16GiB；D 保留 HBM sparse cache。
+# 正式模式：context=8192、S_P/S_D=4096；D 不分配旧 hostSHM 和 staging。
+# 按当前78层/16 slots/576维BF16估算：BM每rank 6GiB，每机96GiB；D 保留 HBM sparse cache。
 # 本轮验收真实 KV、Graph 和释放/复用；NUMA/大容量排查延后到 ticket 09。
 
 # cpu高性能
@@ -74,14 +74,14 @@ set -o pipefail
   # 原 TransferEngine 与 mempool 使用同一个 P 首节点地址。
   export ASCEND_MF_STORE_URL="tcp://${P_IP[0]}:24670"
 
-  MODEL_PATH=/data_lib/data/models/GLM-5.2-w4a8
+  MODEL_PATH=${MODEL_PATH:-/data_lib/data/models/GLM-5.1-w4a8}
 
   # P 机器填 P_IP，D 机器填 D_IP；网卡名在下面各自的启动段修改
   LOCAL_HOST1=${LOCAL_HOST1:-${P_IP[0]}}
   echo "${LOCAL_HOST1}"
 
   # 日志每次启动覆盖；保留历史时通过 LOG_DIR 指定新目录。
-  LOG_DIR=${LOG_DIR:-/tmp/ticket03-s5-formal}
+  LOG_DIR=${LOG_DIR:-/home/cryang/log/glm51mempool}
   mkdir -p "${LOG_DIR}"
   git rev-parse HEAD
   git diff --stat
@@ -226,10 +226,10 @@ set -o pipefail
 #
 # 等待 RELEASE_ACK，把 P/D 的 p.log、d.log 放到同一台机器，再检查：
 # python3 ascend-mempool-test/scripts/verify_service.py \
-#     --prefill-log /tmp/ticket03-s5-formal/p.log \
-#     --decode-log /tmp/ticket03-s5-formal/d.log \
+#     --prefill-log /home/cryang/log/glm51mempool/p.log \
+#     --decode-log /home/cryang/log/glm51mempool/d.log \
 #     --requests 3 --layers 78 \
-#     --report /tmp/ticket03-s5-formal/service-result.json
+#     --report /home/cryang/log/glm51mempool/service-result.json
 #
 # 通过判据：FORMAL_SERVICE_PASSED；另按说明第4节用 curl 小题目核对生成文本。
 # 连续异步组件 gate、真实 Graph、全 rank 释放及实际 P/D slot 复用均需通过。
