@@ -18,6 +18,9 @@ client = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(client)
 
 
+CORRECT = "after_take=14\nafter_add=18\nenough=no\nshortage=2\nfinal=18"
+
+
 class Tokenizer:
     all_special_ids = [1, 2]
 
@@ -74,15 +77,15 @@ class Endpoint:
 
 class ClientTests(unittest.TestCase):
     def test_answer_formats_and_wrong_fact(self):
-        fullwidth = client.EXPECTED_TEXT.replace("=", "：").replace(",", "、")
+        fullwidth = CORRECT.replace("=", "：").replace(",", "、")
         self.assertEqual(client.check_answer(fullwidth)["status"], "correct")
-        wrong = client.check_answer(client.EXPECTED_TEXT.replace("35,10,2", "35,5,2"))
+        wrong = client.check_answer(CORRECT.replace("final=18", "final=16"))
         self.assertEqual(wrong["status"], "incorrect")
-        self.assertEqual(wrong["wrong"], ["after"])
+        self.assertEqual(wrong["wrong"], ["final"])
         self.assertEqual(client.check_answer("我认为答案正确")["status"], "unparsed")
 
     def test_full_question_and_generation_suffix_survive_padding(self):
-        prompt = "核对库存，保留完整问题。"
+        prompt = (ROOT / "mempool-demo-prompt.txt").read_text()
         request, rendered = client.make_request(Tokenizer(), prompt)
         self.assertEqual(len(request["input_ids"]), 4096)
         self.assertTrue(rendered.endswith(prompt + "</user><assistant></think>"))
@@ -114,9 +117,7 @@ class ClientTests(unittest.TestCase):
         return report
 
     def test_two_correct_answers_pass_despite_token_difference(self):
-        endpoint = Endpoint(
-            [client.EXPECTED_TEXT, client.EXPECTED_TEXT.replace("=", "：")]
-        )
+        endpoint = Endpoint([CORRECT, CORRECT.replace("=", "：")])
         report = self.run_pair(endpoint)
         self.assertEqual(report["status"], "passed")
         self.assertTrue(report["logically_equal"])
@@ -126,8 +127,8 @@ class ClientTests(unittest.TestCase):
     def test_wrong_a_still_runs_c_and_reports_difference(self):
         endpoint = Endpoint(
             [
-                client.EXPECTED_TEXT.replace("110,60,37", "110,60,38"),
-                client.EXPECTED_TEXT,
+                CORRECT.replace("after_take=14", "after_take=15"),
+                CORRECT,
             ]
         )
         report = self.run_pair(endpoint)
@@ -136,15 +137,15 @@ class ClientTests(unittest.TestCase):
         self.assertEqual(len(endpoint.requests), 2)
 
     def test_truncated_correct_text_is_not_a_pass(self):
-        report = self.run_pair(Endpoint([client.EXPECTED_TEXT] * 2, finish="length"))
+        report = self.run_pair(Endpoint([CORRECT] * 2, finish="length"))
         self.assertEqual(report["status"], "failed")
 
     def test_c_must_reuse_the_expected_prefix(self):
         with self.assertRaisesRegex(ValueError, "expected hit_len=3968"):
-            self.run_pair(Endpoint([client.EXPECTED_TEXT] * 2, hits=(0, 0)))
+            self.run_pair(Endpoint([CORRECT] * 2, hits=(0, 0)))
 
     def test_used_service_is_rejected_before_sending(self):
-        endpoint = Endpoint([client.EXPECTED_TEXT] * 2)
+        endpoint = Endpoint([CORRECT] * 2)
         endpoint.state["ledger"]["p_prefix"]["outstanding"] = 32
         with self.assertRaisesRegex(ValueError, "A must be cold"):
             self.run_pair(endpoint)

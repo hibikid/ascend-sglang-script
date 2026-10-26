@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Send identical cold/reused prompts to manually launched mempool-min services.
 
-This checks one inventory answer, not full model accuracy or ticket acceptance.
+This checks one simple pencil answer, not full model accuracy or ticket acceptance.
 It owns no server processes; the user keeps the three launch terminals running.
 """
 
@@ -21,18 +21,14 @@ from pathlib import Path
 from typing import Any
 
 HERE = Path(__file__).resolve().parent
-EXPECTED: dict[str, list[int] | list[str]] = {
-    "before": [110, 60, 37],
-    "accept": ["O1", "O3", "O4"],
-    "reject": ["O2", "O5"],
-    "after": [35, 10, 2],
-    "buy": [45, 40, 28],
-    "reason": ["O2:B", "O5:A"],
+EXPECTED: dict[str, int | str] = {
+    "after_take": 14,
+    "after_add": 18,
+    "enough": "no",
+    "shortage": 2,
+    "final": 18,
 }
-EXPECTED_TEXT = "\n".join(
-    f"{key}=" + (";" if key == "reason" else ",").join(map(str, value))
-    for key, value in EXPECTED.items()
-)
+EXPECTED_TEXT = "\n".join(f"{key}={value}" for key, value in EXPECTED.items())
 
 
 def write_json(path: Path, value: Any) -> None:
@@ -40,7 +36,7 @@ def write_json(path: Path, value: Any) -> None:
 
 
 def check_answer(text: str) -> dict[str, Any]:
-    """Parse the six requested facts; formatting trouble is not a wrong answer."""
+    """Parse the five requested facts; formatting trouble is not a wrong answer."""
     facts: dict[str, Any] = {}
     try:
         for line in unicodedata.normalize("NFKC", text).splitlines():
@@ -48,23 +44,19 @@ def check_answer(text: str) -> dict[str, Any]:
             if not line or line.startswith("```"):
                 continue
             match = re.fullmatch(
-                r"(before|accept|reject|after|buy|reason)[=:](.+)", line
+                r"(after_take|after_add|enough|shortage|final)[=:](.+)", line
             )
             if match is None or match[1] in facts:
-                raise ValueError("expected six unique answer lines")
+                raise ValueError("expected five unique answer lines")
             key, value = match.groups()
-            if key in ("before", "after", "buy"):
-                if not re.fullmatch(r"-?\d+,-?\d+,-?\d+", value):
-                    raise ValueError(f"{key}: expected three integer quantities")
-                facts[key] = [int(v) for v in value.split(",")]
-            elif key == "reason":
-                if not re.fullmatch(r"O\d+:[ABC](?:;O\d+:[ABC])*", value):
-                    raise ValueError("reason: expected order:product pairs")
-                facts[key] = value.split(";")
+            if key == "enough":
+                if value.lower() not in ("yes", "no"):
+                    raise ValueError("enough: expected yes or no")
+                facts[key] = value.lower()
             else:
-                if not re.fullmatch(r"O\d+(?:,O\d+)*", value):
-                    raise ValueError(f"{key}: expected ordered order IDs")
-                facts[key] = value.split(",")
+                if not re.fullmatch(r"-?\d+", value):
+                    raise ValueError(f"{key}: expected an integer quantity")
+                facts[key] = int(value)
         if set(facts) != set(EXPECTED):
             raise ValueError("missing answer lines")
     except ValueError as exc:
@@ -93,7 +85,7 @@ def make_request(tokenizer: Any, prompt: str) -> tuple[dict[str, Any], str]:
         raise ValueError("tokenizer must encode one ordinary space as one token")
     padding = 4096 - len(head) - len(tail)
     if padding < 0:
-        raise ValueError("inventory prompt exceeds the fixed 4096-token input")
+        raise ValueError("pencil prompt exceeds the fixed 4096-token input")
     # Insert blank token IDs inside user content, preserving the complete question
     # and assistant generation suffix. Do not decode/re-tokenize before sending.
     ids = head + space * padding + tail
@@ -283,7 +275,7 @@ def main() -> int:
     root.mkdir(parents=True, exist_ok=False)
     report: dict[str, Any] = dict(
         status="running",
-        coverage="inventory A/C semantic smoke only",
+        coverage="simple pencil A/C semantic smoke only",
         ticket_acceptance=False,
         run_id=run_id,
         expected=EXPECTED,

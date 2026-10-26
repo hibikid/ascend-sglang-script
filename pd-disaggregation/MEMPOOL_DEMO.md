@@ -3,7 +3,7 @@
 需要 SGLang `f3e522f9b6` 或包含它的后续版本。两机使用同一版本及同一份
 `glm52mempool-demo.json`。默认路径为 `/home/cryang/sglang`。
 
-本次只检查库存题的冷算 A 与复用 C。配置启用 `prefix_pages=40`、
+本次只检查简单铅笔题的冷算 A 与复用 C。配置启用 `prefix_pages=40`、
 `match_prefix=true`，关闭 `verify_prefix` 和临时算子诊断。
 正常恢复不注入验收用的 allocator 空洞及延迟 fill。
 P eager、D Graph BS=16、page_size=128、SP=8192、SD=128。
@@ -16,19 +16,19 @@ P eager、D Graph BS=16、page_size=128、SP=8192、SD=128。
 31，终端一：
 
 ```bash
-RUN_ID=ticket03-ac-001 bash pd-disaggregation/router-mempool-demo.sh
+RUN_ID=ticket03-ac-002 bash pd-disaggregation/router-mempool-demo.sh
 ```
 
 31，终端二：
 
 ```bash
-RUN_ID=ticket03-ac-001 LOCAL_HOST1=10.120.72.31 bash pd-disaggregation/glm52mempool-demo.sh
+RUN_ID=ticket03-ac-002 LOCAL_HOST1=10.120.72.31 bash pd-disaggregation/glm52mempool-demo.sh
 ```
 
 32，终端一：
 
 ```bash
-RUN_ID=ticket03-ac-001 LOCAL_HOST1=10.120.72.32 bash pd-disaggregation/glm52mempool-demo.sh
+RUN_ID=ticket03-ac-002 LOCAL_HOST1=10.120.72.32 bash pd-disaggregation/glm52mempool-demo.sh
 ```
 
 P 等待 join 时即可启动 D，无需等待 P ready。
@@ -38,7 +38,7 @@ P 等待 join 时即可启动 D，无需等待 P ready。
 31，终端三：
 
 ```bash
-RUN_ID=ticket03-ac-001 python3 pd-disaggregation/request-mempool-demo.py
+RUN_ID=ticket03-ac-002 python3 pd-disaggregation/request-mempool-demo.py
 ```
 
 客户端自动等待 P、D、Main 就绪，确认没有历史请求或 prefix，然后只发送 A/C。
@@ -47,15 +47,15 @@ RUN_ID=ticket03-ac-001 python3 pd-disaggregation/request-mempool-demo.py
 最多生成 128 token，允许自然 EOS。A/C 使用完全相同的请求。
 它核对 Router 的请求身份、释放状态和实际 hit_len=0/3968。
 
-库存题内容见 `mempool-demo-prompt.txt`，以下答案只存在客户端中，不会发给模型：
+简单铅笔题内容见 `mempool-demo-prompt.txt`，题目是20支铅笔取走6支、放入4支，再判断能否一次取走20支。
+以下标准答案只存在客户端中，不会发给模型：
 
 ```text
-before=110,60,37
-accept=O1,O3,O4
-reject=O2,O5
-after=35,10,2
-buy=45,40,28
-reason=O2:B;O5:A
+after_take=14
+after_add=18
+enough=no
+shortage=2
+final=18
 ```
 
 终端打印两次完整回答，以及 `correct` / `incorrect` / `unparsed`。
@@ -75,4 +75,4 @@ output IDs 是否相同另行报告，不作为本语义检查的通过条件。
 再次测冷算必须重启三个服务并更换 RUN_ID，仅更换客户端 RUN_ID 不会清空缓存。
 
 这是单题语义 smoke，不是模型数据集精度、性能或 ticket03 完整验收。
-这也不是原 A/B/C 合成 prompt 的复现：省略 B、采用库存题及正常恢复路径。
+这也不是原 A/B/C 合成 prompt 的复现：省略 B、采用简单铅笔题及正常恢复路径。
