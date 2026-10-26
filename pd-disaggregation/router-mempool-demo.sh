@@ -1,18 +1,19 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-# ticket01 mempool-demo Main Router，在 P 机的独立终端启动。
+# ticket03 mempool A/C demo Main Router，在 P 机的独立终端启动。
 # 使用 SGLang 内的 Main/SR 协议；不要同时启动普通 router.sh 占用 6699。
 # 启动顺序：本脚本 -> P worker -> D worker；三个进程保持前台运行。
 # 共用 glm52mempool-demo.json 与 RUN_ID，默认服务为 http://10.120.72.31:6699。
 # 发送请求前确认 P:8000/ready、D:8001/ready 和 Main:6699/ready 均返回 200。
 # 接口为 /generate：greedy、stream=false、128 对齐的 input_ids、生成上限 128。
-# 单次手动 curl 属于正确性 smoke；完整验收仍使用 run_mempool_min.sh --mode acceptance。
+# 启动后运行 python3 pd-disaggregation/request-mempool-demo.py，自动发送 A/C。
+# 只检查库存题语义；完整验收仍使用 run_mempool_min.sh --mode reuse-acceptance。
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 SGLANG_DIR=${SGLANG_DIR:-/home/cryang/sglang}
 CONFIG_FILE=${CONFIG_FILE:-${script_dir}/glm52mempool-demo.json}
-RUN_ID=${RUN_ID:-glm52-mempool-demo}
+RUN_ID=${RUN_ID:-glm52-mempool-ac}
 LOG_DIR=${LOG_DIR:-/home/cryang/log/mempool-demo/${RUN_ID}}
 dry_run=${1:-}
 if [[ $# -gt 1 || ( -n "$dry_run" && "$dry_run" != --dry-run ) ]]; then
@@ -43,6 +44,7 @@ if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,79}", sys.argv[2]):
     raise SystemExit("RUN_ID must be a simple name of at most 80 characters")
 if not Path(sys.argv[3]).resolve().is_relative_to(Path("/home/cryang/log").resolve()):
     raise SystemExit("LOG_DIR must remain under /home/cryang/log/")
+print(f"prefix_pages={config.prefix_pages} match_prefix={config.match_prefix} verify_prefix={config.verify_prefix}")
 print(f"Main: http://{config.prefill_host}:{config.main_port}  SR: {config.control_endpoint}")
 PY
 

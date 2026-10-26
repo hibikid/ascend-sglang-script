@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-# ticket01 GLM-5.2 mempool demo：P eager，D Graph BS=16，原生 fake warmup 开启。
-# SGLang 使用 7275f29a05 或包含该提交的后续版本。
+# ticket03 GLM-5.2 mempool A/C demo：P eager，D Graph BS=16，原生 fake warmup 开启。
+# SGLang 使用 f3e522f9b6 或包含该提交的后续版本。
 # 先在 P 机另开终端运行 router-mempool-demo.sh，再启动两侧 worker：
 #   31: LOCAL_HOST1=10.120.72.31 bash pd-disaggregation/glm52mempool-demo.sh
 #   32: LOCAL_HOST1=10.120.72.32 bash pd-disaggregation/glm52mempool-demo.sh
@@ -14,7 +14,7 @@ set -eo pipefail
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 SGLANG_DIR=${SGLANG_DIR:-/home/cryang/sglang}
 CONFIG_FILE=${CONFIG_FILE:-${script_dir}/glm52mempool-demo.json}
-RUN_ID=${RUN_ID:-glm52-mempool-demo}
+RUN_ID=${RUN_ID:-glm52-mempool-ac}
 LOG_DIR=${LOG_DIR:-/home/cryang/log/mempool-demo/${RUN_ID}}
 LOCAL_HOST1=${LOCAL_HOST1:-}
 dry_run=${1:-}
@@ -58,12 +58,13 @@ log_root = Path(log_dir).resolve()
 if not log_root.is_relative_to(Path("/home/cryang/log").resolve()):
     raise SystemExit("LOG_DIR must remain under /home/cryang/log/")
 role = roles[local_host]
-args = SimpleNamespace(config=config_path, run_id=run_id)
+args = SimpleNamespace(config=config_path, run_id=run_id, role=role)
 env = service_environment(config, args, log_root, target=True)
 command = ["bash", str(scripts / "run_service.sh"), role, "formal"]
 if dry_run:
     command.append("--dry-run")
 print(f"role={role} host={local_host} run_id={run_id} config={config_path}", flush=True)
+print(f"prefix_pages={config.prefix_pages} match_prefix={config.match_prefix} verify_prefix={config.verify_prefix}", flush=True)
 print(f"P=eager D=Graph(BS=16) warmup=enabled logs={log_root}", flush=True)
 os.execvpe(command[0], command, env)
 PY

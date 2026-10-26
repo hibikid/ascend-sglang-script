@@ -25,5 +25,8 @@
   "context_length": 8448,
   "max_total_tokens": 16384,
   "operation_timeout": 600,
-  "startup_timeout": 7200
+  "startup_timeout": 7200,
+  "prefix_pages": 40,
+  "match_prefix": true,
+  "verify_prefix": false
 }
