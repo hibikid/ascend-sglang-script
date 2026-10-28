@@ -9,9 +9,9 @@ set -o pipefail
 # 两侧服务 ready 后，另开终端启动下方 router，再执行请求测试和日志检查。
 # 原 TransferEngine store 为 P:24670；mempool store 为 P:19000..19015。
 # mempool NIC 预留每侧25670..25701；若 MF 网卡 IP 不同，在对应 --mempool-nic 处修改。
-# 正式模式：context=8192、S_P/S_D=4096；D 不分配旧 hostSHM 和 staging。
-# 按当前78层/16 slots/576维BF16估算：BM每rank 6GiB，每机96GiB；D 保留 HBM sparse cache。
-# 本轮验收真实 KV、Graph 和释放/复用；NUMA/大容量排查延后到 ticket 09。
+# 正式模式：context=16384、S_P/S_D=8192、max running requests=16；D 不分配旧 hostSHM 和 staging。
+# 按当前78层/16 slots/576维BF16估算：BM每rank 11GiB，每机176GiB；D 保留 HBM sparse cache。
+# 使用 NUMA 0-7；验收真实 KV、Graph 和释放/复用。
 
 # cpu高性能
   echo performance | tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
@@ -60,7 +60,7 @@ set -o pipefail
   # mempool 正式模式：P 保留 native HBM KV，D 从 HBM cache 和 P/D BM 取数
   export SGLANG_NPU_ENABLE_SPARSE_KV_OFFLOAD=1
   export SGLANG_NPU_ENABLE_MEMPOOL=1
-  export SGLANG_NPU_MEMPOOL_LOCAL_NUMA_NODE=0,2,4,6
+  export SGLANG_NPU_MEMPOOL_LOCAL_NUMA_NODE=0,1,2,3,4,5,6,7
   # 关闭启动诊断的周期 WAIT/内存/栈快照及主动提升 MF INFO。
   # 保留默认 INFO：Graph、resources、fetch_result、DONE/ACK 是验收所需证据。
   export SGLANG_NPU_MEMPOOL_DIAGNOSTICS=0
@@ -113,7 +113,7 @@ set -o pipefail
           --watchdog-timeout 9000 \
           --host ${P_IP[$i]} --port 8000 \
           --mem-fraction-static 0.75 \
-          --context-length 8192 \
+          --context-length 16384 \
           --disable-radix-cache \
           --chunked-prefill-size -1 \
           --max-prefill-tokens 8192 \
@@ -139,8 +139,8 @@ set -o pipefail
           --mempool-base-port 19000 \
           --mempool-pool-id 104 \
           --mempool-nic tcp://${P_IP[$i]}:25670 \
-          --mempool-prefill-capacity 4096 \
-          --mempool-decode-capacity 4096 \
+          --mempool-prefill-capacity 8192 \
+          --mempool-decode-capacity 8192 \
           --mempool-timeout 600 \
           2>&1 | tee "${LOG_DIR}/p.log"
           exit $?
@@ -175,7 +175,7 @@ set -o pipefail
           --watchdog-timeout 9000 \
           --host ${D_IP[$i]} --port 8001 \
           --mem-fraction-static 0.75 \
-          --context-length 8192 \
+          --context-length 16384 \
           --disable-radix-cache \
           --chunked-prefill-size -1 \
           --max-prefill-tokens 8192 \
@@ -201,8 +201,8 @@ set -o pipefail
           --mempool-base-port 19000 \
           --mempool-pool-id 104 \
           --mempool-nic tcp://${D_IP[$i]}:25670 \
-          --mempool-prefill-capacity 4096 \
-          --mempool-decode-capacity 4096 \
+          --mempool-prefill-capacity 8192 \
+          --mempool-decode-capacity 8192 \
           --mempool-timeout 600 \
           2>&1 | tee "${LOG_DIR}/d.log"
           exit $?
