@@ -120,3 +120,15 @@ bash opt/profiler.sh --ranks 0,1 --seconds 2 --dry-run
 Mac 预览时把 `--sglang-dir` 指向本地 SGLang 工作树，并使用装有 msgspec/torch 等项目依赖的 Python。
 这些入口用于交互式试跑/profile；不自动关停用户启动的服务，也不替代票30 W-0 完整验收。
 硬件运行由用户执行。首次回传对应 run-id 的 config、三侧日志、请求结果目录与完整 trace 目录。
+
+## trace-001 导出故障后的更新
+
+opt启动设置SGLANG_NPU_MEMPOOL_PROFILE_RAW=1，服务内只采集落盘，避免自动解析fork触发BM清理崩溃。
+profiler.sh在stop返回后由独立客户端解析，默认max_process_number=1；window.json记录开停，parse.json记录解析。
+该改动要在更新两个仓库并重新启动服务后生效；已有trace不必重采。失败的已有原始目录可用：
+
+```bash
+bash opt/profiler.sh --parse-only --output-dir /home/cryang/log/mempool-opt/trace-001/trace-d0
+```
+
+用户已验证独立解析恢复176.9MiB trace，总解析46.60秒。新服务采集流程仍待NPU确认。

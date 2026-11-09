@@ -152,6 +152,7 @@ else
 fi
 
 # 轻量计时与手动 profile 窗口；ranks/时长在 profiler.sh 中指定。
+export SGLANG_NPU_MEMPOOL_PROFILE_RAW=1  # 服务内只落盘，避免 BM after-fork 崩溃
 export SGLANG_PROFILE_V2=0
 export SGLANG_PROFILE_WITH_STACK=0
 export SGLANG_PROFILE_RECORD_SHAPES=0

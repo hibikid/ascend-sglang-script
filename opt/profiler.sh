@@ -9,6 +9,7 @@ SECONDS_TO_RECORD=2
 OUTPUT_DIR="/home/cryang/log/mempool-opt/traces/$(date +%Y%m%d-%H%M%S)"
 TIMEOUT=1800
 DRY_RUN=0
+PARSE_ARGS=()
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -18,6 +19,7 @@ while [[ $# -gt 0 ]]; do
         --output-dir) OUTPUT_DIR="$2"; shift 2 ;;
         --timeout) TIMEOUT="$2"; shift 2 ;;
         --sglang-dir) SGLANG_DIR="$2"; shift 2 ;;
+        --parse-only) PARSE_ARGS=(--parse-only); shift ;;
         --dry-run) DRY_RUN=1; shift ;;
         --help|-h)
             cat <<'HELP'
@@ -28,6 +30,7 @@ Usage: bash opt/profiler.sh [options]
   --output-dir DIR              新目录，默认 /home/cryang/log/mempool-opt/traces/<时间>
   --timeout 1800                每次 profile API 的超时秒数
   --sglang-dir DIR              默认 /home/cryang/sglang
+  --parse-only                  只解析 --output-dir 中已有原始数据，不联系服务
   --dry-run                     只打印采集计划
 先运行 requests.sh，确认有负载后，在本机另开终端执行本脚本。
 需要本轮支持 profile_ranks 的 SGLang；CPU/NPU 同采，stack/shapes/merge 关闭。
@@ -47,4 +50,5 @@ python3 ascend-mempool-test/scripts/opt_profile.py \
     --seconds "$SECONDS_TO_RECORD" \
     --output-dir "$OUTPUT_DIR" \
     --timeout "$TIMEOUT" \
+    "${PARSE_ARGS[@]}" \
     "${DRY_ARGS[@]}"
