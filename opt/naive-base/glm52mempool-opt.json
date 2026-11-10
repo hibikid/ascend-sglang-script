@@ -1,0 +1,28 @@
+{
+  "prefill_host": "10.120.72.31",
+  "decode_host": "10.120.72.32",
+  "model_path": "/data_lib/data/models/GLM-5.2-w4a8",
+  "interface": "bond4",
+  "numa_nodes": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "page_size": 64,
+  "prompt_capacity": 8192,
+  "decode_capacity": 8704,
+  "generation_limit": 512,
+  "chunked_prefill_size": 4096,
+  "context_length": 8832,
+  "max_total_tokens": 139520,
+  "max_running_requests": 16,
+  "startup_timeout": 7200,
+  "prefill_port": 8000,
+  "decode_port": 8001,
+  "bootstrap_port": 8995
+}

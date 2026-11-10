@@ -1,5 +1,8 @@
 # GLM-5.2 mempool 性能试跑
 
+旧 naive 固定slot版本使用独立入口：[opt/naive-base](naive-base/README.md)。
+该目录提供准备、P/D启动、请求和采集脚本，模型加载旧版checkout。
+
 四个入口都用普通 `case` 解析参数。默认值在文件顶部；P/D 启动命令在
 `glm52mempool-opt.sh` 下半部分，每条参数独占一行。运行 `--help` 查看接口。
 Python 只处理配置、请求构造/结果保存、profile API，不隐藏模型启动参数。
