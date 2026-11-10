@@ -52,7 +52,7 @@ Usage: bash opt/naive-base/glm52mempool-opt.sh [options]
   --naive-sglang-dir DIR     旧版checkout，默认/home/cryang/sglang-naive-profile
   --mempool-console 0|1      默认0；完整日志始终保存
   --dry-run                  不建checkout、不启动服务、不加载模型
-先在两台各执行prepare.sh。旧版不启动Main Router；请求工具直接派发到P/D。
+先在两台各执行prepare.sh；P机另启动router-mempool-opt.sh，requests通过原生PD Router派发。
 HELP
             exit 0 ;;
         *) echo "Unknown option: $1 (see --help)" >&2; exit 2 ;;

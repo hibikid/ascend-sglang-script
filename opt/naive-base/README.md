@@ -5,7 +5,7 @@
 
 沿用上层opt的脚本约定：默认值在顶部，普通case解析，`--help`和`--dry-run`，模型启动命令在shell中逐项展开。
 Python只处理配置、checkout、请求和报告；P/D完整stdout/stderr先tee到日志，再按开关过滤终端。
-本路径直接向P/D派发原生请求，无需另启动当前Main Router。
+本路径使用旧版原生PD MiniLB Router，负责选择P/D并派发请求。启动入口为router-mempool-opt.sh。
 
 ## 默认值
 
@@ -38,11 +38,21 @@ bash opt/naive-base/prepare.sh --run-id naive-002 \
 ```
 
 prepare参数：IP、模型、网卡、page-size、P/D slot容量，以及config、run-id、log-dir、两个仓库路径。
-不需要先启动当前版服务，不依赖当前Router；也不需要已有ticket31-current目录。
+不需要先启动当前版服务，也不需要已有ticket31-current目录。
+prepare是一次性命令，打印`[prepare] DONE`后自动退出，原终端所在目录与当前仓库分支保持不变；无需手动切回来。
 
-## 2. 启动P/D
+## 2. 启动Router、P/D
 
-P终端：
+P机Router终端：
+
+```bash
+bash opt/naive-base/router-mempool-opt.sh --run-id naive-001
+```
+
+默认绑定P_IP:6699；改端口用`--port`，请求端对应传`--router-url`。
+Router和P/D都常驻前台，各占一个终端。
+
+P机服务终端：
 
 ```bash
 bash opt/naive-base/glm52mempool-opt.sh --role prefill --run-id naive-001
@@ -57,7 +67,7 @@ bash opt/naive-base/glm52mempool-opt.sh --role decode --run-id naive-001
 默认读取prepare保存的配置。启动同一个run时不可变更配置；改配置请用新run-id并再次prepare。
 可增加`--mempool-console 1`显示全部细节；默认0保留原生性能输出和错误。
 `SGLANG_MEMPOOL_CONSOLE`可设置默认值，CLI优先；两端独立选择。
-保存`prefill.log`、`decode.log`、各端launch命令及identity文件（旧SHA、补丁diff、依赖/模型元数据等）。
+保存`router.log`、`prefill.log`、`decode.log`、各端launch命令及identity文件（旧SHA、补丁diff、依赖/模型元数据等）。
 启动时尚无workload，identity中的workload hash为null；每轮请求保存自己的workload hash。
 
 ## 3. D本机发请求
@@ -68,8 +78,10 @@ bash opt/naive-base/requests.sh \
 ```
 
 其他run增加`--config /home/cryang/log/mempool-opt/naive-base/<run-id>/config.json`。
-可覆盖`--output-dir`、`--timeout`、`--decode-log`和`--sglang-dir`。
-默认读取config同目录的`decode.log`，完成后检查各请求16rank的RELEASE_ACK/CLOSED。
+可覆盖`--output-dir`、`--timeout`、`--decode-log`、`--router-url`和`--sglang-dir`。
+请求默认发到P_IP:6699的Router，Router分配bootstrap room并转发P/D。
+默认读取config同目录的`decode.log`，完成后核对本轮新增room数量与请求数相符，且每个room有16rank的RELEASE_ACK/CLOSED。
+原生Router不回传room与客户端rid映射，所以这里是整轮释放核对；请在专用服务上运行，不混入其他请求。
 每条请求固定greedy/ignore_eos，输入含模板且为页大小倍数；保存完整响应、输入IDs、TTFT/TPOT和报告。
 失败返回非零，已完成的响应保留；客户端并发数不代表实际执行批宽。
 
@@ -83,7 +95,7 @@ bash opt/naive-base/requests.sh \
 
 workload长度、输出和case数量必须匹配命令；不会再次tokenize。
 旧版没有跨请求prefix复用，因此不提供`--mode reuse`。当前opt的cold负载可原样重放；复用模式的单case文件不能冒充多case负载。
-旧版TTFT从直接客户端派发到收到D首token，当前版Router TTFT起于reserve；E2E边界也不同，不直接相减。
+旧版TTFT从客户端经Router派发到收到D首token，当前版Router TTFT起于reserve；E2E边界也不同，不直接相减。
 首chunk多token时exact TTFT为空，另记first chunk。人工开trace期间的请求成绩不作为无trace性能基线。
 
 ## 4. D本机采集
@@ -110,12 +122,13 @@ bash opt/naive-base/profiler.sh --parse-only \
 
 ```bash
 bash opt/naive-base/prepare.sh --dry-run
+bash opt/naive-base/router-mempool-opt.sh --dry-run
 bash opt/naive-base/glm52mempool-opt.sh --role decode --mempool-console 1 --dry-run
 bash opt/naive-base/requests.sh --config opt/naive-base/glm52mempool-opt.json --count 5 --dry-run
 bash opt/naive-base/profiler.sh --ranks 0 --seconds 2 --dry-run
 ```
 
 Mac预览增加`--sglang-dir <当前工具仓库>`，使用装有项目依赖的Python。
-四个入口均不在dry-run中启动服务或新建checkout。
+所有入口均不在dry-run中启动服务或新建checkout。
 本套用于交互式性能试跑；票31固定warmup/S1/W0、当前S1/S2/S3及正式汇总继续使用SGLang的`ascend-mempool-test/TICKET31.md`。
 新增配置JSON的decode_capacity语义是旧版固定slot容量，不要将其直接传给当前Router的配置入口。

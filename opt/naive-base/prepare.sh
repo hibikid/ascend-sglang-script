@@ -52,7 +52,7 @@ Usage: bash opt/naive-base/prepare.sh [options]
   --naive-sglang-dir DIR     旧版checkout，默认/home/cryang/sglang-naive-profile
   --mempool-console 0|1      默认0；完整日志始终保存
   --dry-run                  不建checkout、不启动服务、不加载模型
-先在两台各执行prepare.sh。旧版不启动Main Router；请求工具直接派发到P/D。
+先在两台各执行prepare.sh；P机另启动router-mempool-opt.sh，requests通过原生PD Router派发。
 HELP
             exit 0 ;;
         *) echo "Unknown option: $1 (see --help)" >&2; exit 2 ;;
@@ -93,3 +93,9 @@ python3 "$TOOLS_DIR/opt_naive_config.py" prepare \
     --decode-capacity "$DECODE_CAPACITY" \
     "${DRY_ARGS[@]}"
 source "$ENV_FILE"
+
+if [[ "$DRY_RUN" == 1 ]]; then
+    printf "[prepare] dry-run完成；未创建checkout或运行配置。\n"
+else
+    printf "[prepare] DONE：旧版checkout和配置已就绪；本脚本自动退出，原终端目录/分支不变。\n"
+fi
