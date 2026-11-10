@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# 完整日志始终落盘；SGLANG_MEMPOOL_CONSOLE=1 恢复 mempool/KV 终端细节。
 set -eo pipefail
 
 # 默认值在这里；空的覆盖项表示读取同目录 JSON。
@@ -17,6 +18,7 @@ P_INDEX_PAGE=""     # 默认 4096
 D_ALIVE_PAGE=""     # 默认 4096
 PREFIX_PAGE=""      # 默认 192；后续两张 baseline 固定此容量
 PAGE_SIZE=""        # 默认 64 token/page
+MEMPOOL_CONSOLE=${SGLANG_MEMPOOL_CONSOLE:-0} # 0隐藏细节，1全部显示；CLI优先
 DRY_RUN=0
 LAUNCH_ARGS=("$@")
 
@@ -36,6 +38,7 @@ while [[ $# -gt 0 ]]; do
         --run-id) RUN_ID="$2"; shift 2 ;;
         --log-dir) LOG_DIR="$2"; shift 2 ;;
         --sglang-dir) SGLANG_DIR="$2"; shift 2 ;;
+        --mempool-console) MEMPOOL_CONSOLE="$2"; shift 2 ;;
         --dry-run) DRY_RUN=1; shift ;;
         --help|-h)
             cat <<'HELP'
@@ -47,6 +50,8 @@ Usage: bash opt/glm52mempool-opt.sh --role prefill|decode [options]
   --config FILE          其他容量、端口、NUMA 参数在 JSON 中修改
   --run-id opt-001       Router/P/D 三者必须一致
   --log-dir DIR          默认 /home/cryang/log/mempool-opt/<run-id>
+  --mempool-console 0|1  终端细节开关；默认0，环境变量 SGLANG_MEMPOOL_CONSOLE 可覆盖
+                         完整日志始终落盘，原生性能输出继续显示
   --sglang-dir DIR       默认 /home/cryang/sglang
   --dry-run              打印参数；不启动服务、不加载模型
 HELP
@@ -54,6 +59,10 @@ HELP
         *) echo "Unknown option: $1 (see --help)" >&2; exit 2 ;;
     esac
 done
+if [[ "$MEMPOOL_CONSOLE" != 0 && "$MEMPOOL_CONSOLE" != 1 ]]; then
+    echo "--mempool-console / SGLANG_MEMPOOL_CONSOLE must be 0 or 1" >&2
+    exit 2
+fi
 if [[ "$ROLE" != prefill && "$ROLE" != decode ]]; then
     echo "--role must be prefill or decode" >&2
     exit 2
@@ -90,6 +99,7 @@ python3 ascend-mempool-test/scripts/opt_config.py \
     --page-size "$PAGE_SIZE" \
     "${DRY_ARGS[@]}"
 source "$ENV_FILE"
+printf 'mempool console=%s (0=quiet, 1=all); full log: %s/%s.log\n' "$MEMPOOL_CONSOLE" "$RUN_DIR" "$ROLE"
 
 if [[ "$DRY_RUN" == 0 ]]; then
     source /usr/local/Ascend/ascend-toolkit/set_env.sh
@@ -97,16 +107,16 @@ if [[ "$DRY_RUN" == 0 ]]; then
     export LD_LIBRARY_PATH="/usr/local/Ascend/ascend-toolkit/latest/opp/vendors/customize/op_api/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
     export PATH="/usr/local/Ascend/8.5.0/compiler/bishengir/bin:$PATH"
     mkdir -p "$RUN_DIR"
-    { git rev-parse HEAD; printf '%q ' "$0" "${LAUNCH_ARGS[@]}"; printf '\n'; } > "$RUN_DIR/$ROLE-launch.txt"
+    { printf 'mempool_console=%s\n' "$MEMPOOL_CONSOLE"; git rev-parse HEAD; printf '%q ' "$0" "${LAUNCH_ARGS[@]}"; printf '\n'; } > "$RUN_DIR/$ROLE-launch.txt"
 fi
 
 # dry-run 和真正启动共用下面同一条命令。
 run() {
     if [[ "$DRY_RUN" == 1 ]]; then
         printf '%q ' "$@"
-        printf '\n'
+        printf '| tee %q | python3 -u ascend-mempool-test/scripts/mempool_console.py --console %q\n' "$RUN_DIR/$ROLE.log" "$MEMPOOL_CONSOLE"
     else
-        "$@" 2>&1 | tee "$RUN_DIR/$ROLE.log"
+        "$@" 2>&1 | tee "$RUN_DIR/$ROLE.log" | python3 -u ascend-mempool-test/scripts/mempool_console.py --console "$MEMPOOL_CONSOLE"
     fi
 }
 

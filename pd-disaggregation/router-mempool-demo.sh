@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# 完整日志始终落盘；SGLANG_MEMPOOL_CONSOLE=1 恢复 mempool/KV 终端细节。
 set -eo pipefail
 
 # ticket03 mempool A/C demo Main Router，在 P 机的独立终端启动。
@@ -56,4 +57,4 @@ if [[ "$dry_run" == --dry-run ]]; then
     exit 0
 fi
 mkdir -p "$LOG_DIR"
-"${command[@]}" 2>&1 | tee "$LOG_DIR/router.log"
+"${command[@]}" 2>&1 | tee "$LOG_DIR/router.log" | python3 -u ascend-mempool-test/scripts/mempool_console.py

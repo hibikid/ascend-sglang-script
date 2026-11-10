@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# 完整日志始终落盘；SGLANG_MEMPOOL_CONSOLE=1 恢复 mempool/KV 终端细节。
 set -o pipefail
 
 # 与 glm51dis.sh 一样：修改下面 P_IP、D_IP、LOCAL_HOST1、MODEL_PATH 和各段网卡名。
@@ -142,7 +143,7 @@ set -o pipefail
           --mempool-prefill-capacity 8192 \
           --mempool-decode-capacity 8192 \
           --mempool-timeout 600 \
-          2>&1 | tee "${LOG_DIR}/p.log"
+          2>&1 | tee "${LOG_DIR}/p.log" | python3 -u ascend-mempool-test/scripts/mempool_console.py
           exit $?
       fi
   done
@@ -204,7 +205,7 @@ set -o pipefail
           --mempool-prefill-capacity 8192 \
           --mempool-decode-capacity 8192 \
           --mempool-timeout 600 \
-          2>&1 | tee "${LOG_DIR}/d.log"
+          2>&1 | tee "${LOG_DIR}/d.log" | python3 -u ascend-mempool-test/scripts/mempool_console.py
           exit $?
       fi
   done

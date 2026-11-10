@@ -47,6 +47,26 @@ P eager，D Graph BS=16，原生 warmup 开启；LRU=0、cache factor=2。
 默认服务允许输入最多 8192、输出最多 512；context=8832、max-total-tokens=139520。
 后续两张 baseline 固定 prefix192；临时试其他容量不作为那两张 baseline。
 
+### 终端日志开关
+
+P/D 和 Router 默认 `--mempool-console 0`：隐藏已识别的 mempool/BM连接、KV布局、
+逐步读写和调度细节，保留原生 Prefill/Decode 性能行、错误及告警。
+完整 stdout/stderr 始终先写入原来的 `prefill.log`、`decode.log`、`router.log`。
+
+```bash
+# 日常运行，默认安静模式（原来的其他参数照常追加）
+bash opt/glm52mempool-opt.sh --role decode --run-id opt-001 --mempool-console 0
+# Debug 时在启动命令中打开全部细节
+bash opt/glm52mempool-opt.sh --role decode --run-id opt-001 --mempool-console 1
+bash opt/router-mempool-opt.sh --run-id opt-001 --mempool-console 1
+```
+
+也支持 `SGLANG_MEMPOOL_CONSOLE=1` 环境变量；命令行参数优先。
+各端可独立选择，启动时读取，不支持运行中热切换。
+启动摘要、`--dry-run` 和 `<role>-launch.txt` 都记录最终开关及日志位置。
+需同时更新 SGLang 仓库的 `ascend-mempool-test/scripts/mempool_console.py`。
+未知底层库输出继续显示；已关闭的诊断探针不会被开启，文件I/O开销仍存在。
+
 ## 2. 产生负载
 
 在有本地模型 tokenizer 的 P/D 任一机器另开终端：
