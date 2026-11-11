@@ -185,3 +185,19 @@ bash opt/bench-address-lookup.sh --device-id 0 --samples 100 \
 两个入口均支持 `--sglang-dir /home/cryang/sglang`。
 完整覆盖范围、失败判据和回传文件见SGLang仓库 `ascend-mempool-test/METADATA_STAGE12.md`。
 生产查找算子尚未替换，下一步取决于NPU微测结果。
+
+## 独立地址准备 demo（第3项之后）
+
+第3项生产查表已经替换；本轮继续用独立微测筛选地址准备候选，不修改服务实现。
+只需32的一张空闲NPU，无需Router/P/D、模型或BM：
+
+```bash
+bash opt/bench-address-prepare.sh --device-id 0 --samples 100 \
+  --output-dir /home/cryang/log/mempool-opt/address-prepare-001
+```
+
+支持`--sglang-dir /home/cryang/sglang`和`--describe`预览。
+比较baseline、direct、compact、combined、combined_bits；2048/32768项、eager/Graph。
+报告20行计时，每行7组原地输入更新检查；图宽1仅为微测，服务Graph16和LRU0不变。
+成功状态为`passed_address_prepare_microbenchmark`，回传report.json与console日志。
+完整命令、候选说明与测量边界见SGLang的`ascend-mempool-test/ADDRESS_PREPARE_DEMO.md`。
