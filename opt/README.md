@@ -155,3 +155,33 @@ bash opt/profiler.sh --parse-only --output-dir /home/cryang/log/mempool-opt/trac
 ```
 
 用户已验证独立解析恢复176.9MiB trace，总解析46.60秒。新服务采集流程仍待NPU确认。
+
+## 来源统计与地址解析微测（第1、2项）
+
+当前性能入口默认 `--source-evidence 0`，关闭来源计数；正常功能验收用
+`--source-evidence 1`。CLI优先于 `SGLANG_NPU_MEMPOOL_SOURCE_EVIDENCE`；修改后须重启。
+它与终端日志开关独立，未采集的计数不会伪装成零，所有正确性检查和完成事件位置保持原样。
+
+两台机器分别运行一条命令，自动完成统计开/关两轮同负载及自身进程清理：
+
+```bash
+# npu1-31
+bash opt/verify-source-evidence.sh --role prefill --run-id source-ab-001
+# npu1-32
+bash opt/verify-source-evidence.sh --role decode --run-id source-ab-001
+```
+
+先停止旧Router/P/D；两轮均4096→512、并发1、5请求、LRU0、Graph16，不启动profiler。
+两端 `summary.json` 和P端 `comparison.json` 位于
+`/home/cryang/log/mempool-opt/source-ab-001/<role>/`。`--describe` 可预览。
+
+服务对照结束后，独立执行查找微测，不加载模型或BM：
+
+```bash
+bash opt/bench-address-lookup.sh --device-id 0 --samples 100 \
+  --output-dir /home/cryang/log/mempool-opt/address-lookup-001
+```
+
+两个入口均支持 `--sglang-dir /home/cryang/sglang`。
+完整覆盖范围、失败判据和回传文件见SGLang仓库 `ascend-mempool-test/METADATA_STAGE12.md`。
+生产查找算子尚未替换，下一步取决于NPU微测结果。

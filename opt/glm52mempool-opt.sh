@@ -19,6 +19,7 @@ D_ALIVE_PAGE=""     # 默认 4096
 PREFIX_PAGE=""      # 默认 192；后续两张 baseline 固定此容量
 PAGE_SIZE=""        # 默认 64 token/page
 MEMPOOL_CONSOLE=${SGLANG_MEMPOOL_CONSOLE:-0} # 0隐藏细节，1全部显示；CLI优先
+SOURCE_EVIDENCE=${SGLANG_NPU_MEMPOOL_SOURCE_EVIDENCE:-0} # 性能入口显式关闭；验收用1
 DRY_RUN=0
 LAUNCH_ARGS=("$@")
 
@@ -39,6 +40,7 @@ while [[ $# -gt 0 ]]; do
         --log-dir) LOG_DIR="$2"; shift 2 ;;
         --sglang-dir) SGLANG_DIR="$2"; shift 2 ;;
         --mempool-console) MEMPOOL_CONSOLE="$2"; shift 2 ;;
+        --source-evidence) SOURCE_EVIDENCE="$2"; shift 2 ;;
         --dry-run) DRY_RUN=1; shift ;;
         --help|-h)
             cat <<'HELP'
@@ -52,6 +54,8 @@ Usage: bash opt/glm52mempool-opt.sh --role prefill|decode [options]
   --log-dir DIR          默认 /home/cryang/log/mempool-opt/<run-id>
   --mempool-console 0|1  终端细节开关；默认0，环境变量 SGLANG_MEMPOOL_CONSOLE 可覆盖
                          完整日志始终落盘，原生性能输出继续显示
+  --source-evidence 0|1 来源统计；性能入口默认0，正确性验收用1
+                         CLI优先于 SGLANG_NPU_MEMPOOL_SOURCE_EVIDENCE；改动后重启服务
   --sglang-dir DIR       默认 /home/cryang/sglang
   --dry-run              打印参数；不启动服务、不加载模型
 HELP
@@ -61,6 +65,10 @@ HELP
 done
 if [[ "$MEMPOOL_CONSOLE" != 0 && "$MEMPOOL_CONSOLE" != 1 ]]; then
     echo "--mempool-console / SGLANG_MEMPOOL_CONSOLE must be 0 or 1" >&2
+    exit 2
+fi
+if [[ "$SOURCE_EVIDENCE" != 0 && "$SOURCE_EVIDENCE" != 1 ]]; then
+    echo "--source-evidence / SGLANG_NPU_MEMPOOL_SOURCE_EVIDENCE must be 0 or 1" >&2
     exit 2
 fi
 if [[ "$ROLE" != prefill && "$ROLE" != decode ]]; then
@@ -101,13 +109,15 @@ python3 ascend-mempool-test/scripts/opt_config.py \
 source "$ENV_FILE"
 printf 'mempool console=%s (0=quiet, 1=all); full log: %s/%s.log\n' "$MEMPOOL_CONSOLE" "$RUN_DIR" "$ROLE"
 
+printf 'source_evidence=%s (0=not-collected, 1=collected)\n' "$SOURCE_EVIDENCE"
+
 if [[ "$DRY_RUN" == 0 ]]; then
     source /usr/local/Ascend/ascend-toolkit/set_env.sh
     source /usr/local/Ascend/nnal/atb/set_env.sh
     export LD_LIBRARY_PATH="/usr/local/Ascend/ascend-toolkit/latest/opp/vendors/customize/op_api/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
     export PATH="/usr/local/Ascend/8.5.0/compiler/bishengir/bin:$PATH"
     mkdir -p "$RUN_DIR"
-    { printf 'mempool_console=%s\n' "$MEMPOOL_CONSOLE"; git rev-parse HEAD; printf '%q ' "$0" "${LAUNCH_ARGS[@]}"; printf '\n'; } > "$RUN_DIR/$ROLE-launch.txt"
+    { printf 'mempool_console=%s\nsource_evidence=%s\n' "$MEMPOOL_CONSOLE" "$SOURCE_EVIDENCE"; git rev-parse HEAD; printf '%q ' "$0" "${LAUNCH_ARGS[@]}"; printf '\n'; } > "$RUN_DIR/$ROLE-launch.txt"
 fi
 
 # dry-run 和真正启动共用下面同一条命令。
@@ -145,6 +155,7 @@ export SGLANG_NPU_MEMPOOL_D_ALIVE_MAIN_PAGES="$D_ALIVE_PAGE"
 export SGLANG_NPU_MEMPOOL_P_PREFIX_PAGES="$PREFIX_PAGE"
 export SGLANG_NPU_MEMPOOL_SHARE=0
 export SGLANG_NPU_MEMPOOL_DIAGNOSTICS=0
+export SGLANG_NPU_MEMPOOL_SOURCE_EVIDENCE="$SOURCE_EVIDENCE"
 export SGLANG_NPU_USE_MLAPO=0
 export SGLANG_USE_FIA_NZ=0
 export SGLANG_NPU_SPARSE_KV_ENABLE_LRU=0
