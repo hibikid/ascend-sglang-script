@@ -201,3 +201,20 @@ bash opt/bench-address-prepare.sh --device-id 0 --samples 100 \
 报告20行计时，每行7组原地输入更新检查；图宽1仅为微测，服务Graph16和LRU0不变。
 成功状态为`passed_address_prepare_microbenchmark`，回传report.json与console日志。
 完整命令、候选说明与测量边界见SGLang的`ascend-mempool-test/ADDRESS_PREPARE_DEMO.md`。
+
+
+## 双地址准备 kernel demo
+
+单张空闲 NPU，比较 baseline、combined、scalar int64 和向量拆段两种 kernel。
+先在 `sgl-kernel-npu` 的 `feat/lru-probation-unidex-multibase` 分支运行
+`bash build.sh -a kernels` 并安装 `output/sgl_kernel_npu*.whl`。
+
+```bash
+bash opt/bench-address-kernel.sh --device-id 0 --rounds 2 --samples 30 \
+  --run-dir /home/cryang/log/mempool-opt/address-kernel-001 --build-kernel
+```
+
+默认 kernel checkout 为 `/home/cryang/sgl-kernel-npu`，可用 `--kernel-dir` 指定实际位置。
+两轮内轮转候选；eager/Graph 均校验真实输出。B=1 比较 32/48 核；B=16 分开测全活跃和一行活跃。
+报告 `results/report.json` 保存逐轮原始计时、正确性检查和实际加载 `.so` 哈希；任何失败返回非零。
+完整后台运行及构建命令见 SGLang `ascend-mempool-test/ADDRESS_KERNEL_DEMO.md`。
